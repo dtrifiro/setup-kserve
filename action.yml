@@ -1,0 +1,64 @@
+name: "Setup Kserve"
+author: "Daniele Trifirò (dtrifiro@redhat.com)"
+description: "Sets up kserve in a kind cluster"
+inputs:
+  cluster_name:
+    description: "Name of the kind cluster to be created"
+    required: false
+    default: "kserve-testing"
+  namespace:
+    description: "Name of the k8s namespace to create and default to"
+    required: false
+    default: testing
+
+runs:
+  using: "composite"
+  steps:
+    - name: Create k8s Kind Cluster
+      uses: helm/kind-action@v1.5.0
+      with:
+        cluster_name: ${{ inputs.cluster_name }}
+        config: ${{ github.action_path }}/kind_config.yml
+
+    - name: Install kserve
+      shell: bash
+      run: |
+        # Use the hack/quick_install.sh script from the kserve repo
+        curl https://raw.githubusercontent.com/opendatahub-io/kserve/v0.11.1.1/hack/quick_install.sh | bash
+
+    - name: Patch Istio Ingressway
+      shell: bash
+      run: |
+        # bind the istio ingressway ports on the host so that we can access its services
+        kubectl patch deployments.apps -o yaml -n istio-system istio-ingressgateway -p '{
+          "spec":
+            {"template":
+              {"spec":
+                {"containers":
+                  [
+                    {
+                      "name":
+                      "istio-proxy",
+                      "ports":
+                        [
+                          {
+                            "containerPort":8080,
+                            "hostPort":80
+                          },
+                          {
+                            "containerPort":8443,
+                            "hostPort":443
+                          }
+                        ]
+                    }
+                  ]
+                }
+              }
+            }
+        }'
+
+    - name: Setup testing namespace
+      shell: bash
+      run: |
+        kubectl create namespace ${{ inputs.namespace }}
+        kubectl config set-context "kind-${{ inputs.cluster_name }}" --namespace ${{ inputs.namespace }}
