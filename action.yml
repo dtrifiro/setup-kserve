@@ -10,6 +10,14 @@ inputs:
     description: "Name of the k8s namespace to create and default to"
     required: false
     default: testing
+  kserve_version:
+    description: "kserve version (git tag) to be installed on the kind cluster"
+    required: false
+    default: v0.11.1.1
+  kserve_repo:
+    description: "kserve repository to use to install kserve"
+    required: false
+    default: opendatahub-io/kserve
 
 runs:
   using: "composite"
@@ -24,7 +32,7 @@ runs:
       shell: bash
       run: |
         # Use the hack/quick_install.sh script from the kserve repo
-        curl https://raw.githubusercontent.com/opendatahub-io/kserve/v0.11.1.1/hack/quick_install.sh | bash
+        curl https://raw.githubusercontent.com/${{ inputs.kserve_repo }}/${{ inputs.kserve_version }}/hack/quick_install.sh | bash
 
     - name: Patch Istio Ingressway
       shell: bash
