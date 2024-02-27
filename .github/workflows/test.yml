@@ -1,0 +1,23 @@
+name: "Test action"
+
+on:
+  schedule:
+    - cron: "20 4 * * 1" # once a week
+  workflow_dispatch:
+
+  push:
+    branches: [main]
+
+  pull_request:
+
+jobs:
+  testing:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: dtrifiro/setup-kserve@main
+        with:
+          namespace: "testing-kserve"
+      - name: Get all kserve namespace resources
+        run: |
+          kubectl get all -n "testing-kserve"
